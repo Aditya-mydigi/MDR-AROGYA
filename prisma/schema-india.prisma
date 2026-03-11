@@ -1,11 +1,11 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "./generated/india"
+  provider        = "prisma-client-js"
+  output          = "./generated/india"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource india {
   provider = "postgresql"
-  url      = env("DATABASE_URL_INDIA")
 }
 
 model users {
@@ -38,7 +38,7 @@ model users {
   address                                       String?
   gender                                        gender_type
   login_type                                    String?
-  credit                                        Decimal?          @default(0) @india.Decimal
+  credit                                        Decimal?          @default(5) @india.Decimal
   user_plan_active                              Boolean?          @default(false)
   plan_id                                       String?
   payment_date                                  DateTime?         @india.Timestamp(6)
@@ -46,8 +46,12 @@ model users {
   coupon_code                                   String?
   order_id                                      String?           @unique
   immunizations                                 String[]
-  daily_sv                                      Int?              @default(0)
   monthly_ocr                                   Int?              @default(0)
+  u_type                                        String            @default("normal")
+  daily_sv_reset_date                           DateTime?         @india.Date
+  daily_sv_last_reset                           DateTime?         @default(now()) @india.Timestamp(6)
+  daily_sv                                      Int?              @default(5)
+  credit_tracking                               credit_tracking?
   favshealthhub                                 favshealthhub[]
   payment_records                               payment_records[]
   referrals_referrals_referred_by_mdr_idTousers referrals[]       @relation("referrals_referred_by_mdr_idTousers")
@@ -252,6 +256,102 @@ model vault_documents {
   @@index([user_id], map: "idx_vault_documents_user_id")
 }
 
+model credit_tracking {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @india.Uuid
+  user_id          String    @unique @india.Uuid
+  last_credit_date DateTime  @india.Timestamp(6)
+  created_at       DateTime? @default(now()) @india.Timestamp(6)
+  updated_at       DateTime? @default(now()) @india.Timestamp(6)
+  users            users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model mentalai_sub {
+  id               Int       @id @default(autoincrement())
+  order_id         String    @unique @india.VarChar(50)
+  mdr_id           String    @india.VarChar(50)
+  client_id        String    @india.Uuid
+  plan_name        String    @india.VarChar(255)
+  sessions         Int
+  amount           Decimal   @india.Decimal(10, 2)
+  time_of_start    DateTime  @india.Timestamptz(6)
+  time_of_expiry   DateTime  @india.Timestamptz(6)
+  payment_status   String?   @default("Pending") @india.VarChar(20)
+  payment_response String?
+  created_at       DateTime? @default(now()) @india.Timestamptz(6)
+  updated_at       DateTime? @default(now()) @india.Timestamptz(6)
+  free_session     Boolean?  @default(true)
+  free_count       Int?      @default(5)
+
+  @@index([client_id], map: "idx_mentalai_sub_client_id")
+  @@index([created_at], map: "idx_mentalai_sub_created_at")
+  @@index([mdr_id], map: "idx_mentalai_sub_mdr_id")
+  @@index([order_id], map: "idx_mentalai_sub_order_id")
+  @@index([payment_status], map: "idx_mentalai_sub_payment_status")
+}
+
+model subscription_payments {
+  id                   Int       @id @default(autoincrement())
+  order_id             String    @unique @india.VarChar(50)
+  user_id              String    @india.Uuid
+  mdr_id               String    @india.VarChar(50)
+  subscription_plan_id String    @india.VarChar(100)
+  amount               Decimal   @india.Decimal(10, 2)
+  currency             String?   @default("INR") @india.VarChar(10)
+  sessions             Int
+  payment_status       String?   @default("Pending") @india.VarChar(20)
+  response             String?
+  decrypted_response   Json?
+  response_datetime    DateTime? @india.Timestamp(6)
+  is_renewal           Boolean?  @default(false)
+  created_at           DateTime? @default(now()) @india.Timestamp(6)
+
+  @@index([order_id], map: "idx_subscription_payments_order_id")
+  @@index([payment_status], map: "idx_subscription_payments_status")
+  @@index([user_id], map: "idx_subscription_payments_user_id")
+}
+
+model user_payment_methods {
+  id             Int       @id @default(autoincrement())
+  user_id        String    @india.Uuid
+  mdr_id         String    @india.VarChar(50)
+  payment_token  String    @india.VarChar(255)
+  payment_type   String    @india.VarChar(20)
+  card_last_four String?   @india.VarChar(4)
+  card_brand     String?   @india.VarChar(20)
+  upi_id         String?   @india.VarChar(100)
+  is_default     Boolean?  @default(false)
+  is_active      Boolean?  @default(true)
+  created_at     DateTime? @default(now()) @india.Timestamp(6)
+  updated_at     DateTime? @default(now()) @india.Timestamp(6)
+
+  @@index([payment_token], map: "idx_user_payment_methods_token")
+  @@index([user_id], map: "idx_user_payment_methods_user_id")
+}
+
+model user_subscriptions {
+  id                   Int       @id @default(autoincrement())
+  user_id              String    @india.Uuid
+  mdr_id               String    @india.VarChar(50)
+  subscription_plan_id String    @india.VarChar(100)
+  order_id             String    @india.VarChar(50)
+  sessions_allocated   Int       @default(0)
+  sessions_used        Int       @default(0)
+  status               String?   @default("pending") @india.VarChar(20)
+  billing_cycle        String    @india.VarChar(20)
+  next_billing_date    DateTime? @india.Timestamp(6)
+  auto_renewal         Boolean?  @default(true)
+  created_at           DateTime? @default(now()) @india.Timestamp(6)
+  activated_at         DateTime? @india.Timestamp(6)
+  cancelled_at         DateTime? @india.Timestamp(6)
+  payment_token        String?   @india.VarChar(255)
+  payment_method_id    Int?
+
+  @@index([next_billing_date], map: "idx_user_subscriptions_next_billing", where: raw("((status)::text = 'active'::text)"))
+  @@index([status], map: "idx_user_subscriptions_status")
+  @@index([user_id], map: "idx_user_subscriptions_user_id")
+}
+
 enum gender_type {
   Male
   Female
@@ -259,4 +359,10 @@ enum gender_type {
   male
   female
   other
+}
+
+enum payment_status_enum {
+  PAID
+  PENDING
+  FAILED
 }

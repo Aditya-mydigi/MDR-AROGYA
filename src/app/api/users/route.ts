@@ -31,7 +31,9 @@ export async function GET(request: Request) {
     );
 
     // Dynamic filters for both DBs
-    const whereClause: any = {};
+    const whereClause: any = {
+  u_type: "army",
+};
 
     let searchOR: any[] = [];
     if (search) {
