@@ -1,0 +1,258 @@
+generator clientUSA {
+  provider = "prisma-client-js"
+  output   = "./generated/usa"
+}
+
+datasource usa {
+  provider = "postgresql"
+  url      = env("DATABASE_URL_USA")
+}
+
+model allergies_data {
+  id                         Int      @id @default(autoincrement())
+  user_id                    String   @usa.Uuid
+  allergy                    String
+  allergen                   String?
+  scientific_name            String?
+  occurrence_in_diet_contact String?
+  allergy_information        String?
+  signs_and_symptoms         String?
+  related_foods              String?
+  diagnosis                  String?
+  suggestion                 String?
+  avoidance                  String?
+  risks                      String?
+  category                   String?
+  allergy_id                 String?  @usa.Uuid
+  created_at                 DateTime @default(now()) @usa.Timestamptz(6)
+  updated_at                 DateTime @default(now()) @usa.Timestamptz(6)
+  mdr_id                     String?
+  users                      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model favshealthhub {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @usa.Uuid
+  user_id    String    @usa.Uuid
+  mdr_id     String
+  favs       Json
+  created_at DateTime? @default(now()) @usa.Timestamp(6)
+  updated_at DateTime? @default(now()) @usa.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([favs], map: "idx_user_favs_gin", type: Gin)
+}
+
+model health_hub {
+  id             Int       @id @default(autoincrement())
+  user_id        String    @unique(map: "unique_health_hub_user") @usa.Uuid
+  favs           String[]  @default([])
+  interests      String[]  @default([])
+  recent_browsed String[]  @default([])
+  created_at     DateTime? @default(now()) @usa.Timestamptz(6)
+  updated_at     DateTime? @default(now()) @usa.Timestamptz(6)
+  mdr_id         String?
+  users          users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_health_hub_user_id")
+}
+
+model mdr_id_sequence {
+  year_month String @id
+  seq        Int
+}
+
+model mental_ai {
+  id      Int      @default(autoincrement())
+  mdr_id  String
+  session Boolean?
+
+  @@id([id, mdr_id], map: "PK_mental_ai")
+}
+
+model payment_records {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @usa.Uuid
+  orderid               String    @unique
+  clientid              String
+  plan_id               String?
+  credit                Int
+  amount                Decimal   @usa.Decimal
+  discount_amount       Decimal?  @default(0) @usa.Decimal
+  final_amount          Decimal   @usa.Decimal
+  payment_status        String
+  only_for_credit       Boolean
+  validity              String?
+  validity_in_days      Int?
+  coupon_id             String?
+  datetime              DateTime  @default(now()) @usa.Timestamp(6)
+  response              String?
+  response_datetime     DateTime? @usa.Timestamp(6)
+  mdr_id                String?
+  square_payment_id     String?
+  square_transaction_id String?
+}
+
+model plans {
+  plan_id           String   @id
+  amount            Decimal  @usa.Decimal
+  validity          String?
+  validity_in_days  Int
+  visibility        Boolean  @default(true)
+  description_line1 String?
+  description_line2 String?
+  SmartVitals       Boolean? @default(true)
+  Medication        Boolean? @default(true)
+  Vaccines          Boolean? @default(true)
+  HealthSnapShot    Boolean? @default(true)
+  Records           Boolean? @default(true)
+  Prenatal          Boolean? @default(true)
+  HealthHub         Boolean? @default(true)
+  Members           Boolean? @default(true)
+  ABHA              Boolean? @default(true)
+}
+
+model referrals {
+  id                                        String    @id @default(dbgenerated("gen_random_uuid()")) @usa.Uuid
+  user_id                                   String    @usa.Uuid
+  user_mdr_id                               String    @usa.VarChar(250)
+  referred_by                               String    @usa.Uuid
+  referred_by_mdr_id                        String?   @usa.VarChar(250)
+  referral_code                             String
+  referral_date                             DateTime? @default(now()) @usa.Timestamp(6)
+  code_id                                   String?
+  users_referrals_referred_by_mdr_idTousers users?    @relation("referrals_referred_by_mdr_idTousers", fields: [referred_by_mdr_id], references: [mdr_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_referred_by_mdr_id")
+  users_referrals_user_idTousers            users     @relation("referrals_user_idTousers", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_id")
+  users_referrals_user_mdr_idTousers        users     @relation("referrals_user_mdr_idTousers", fields: [user_mdr_id], references: [mdr_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_mdr_id")
+}
+
+model rewards {
+  id        Int       @id @default(autoincrement())
+  name      String?   @usa.VarChar(250)
+  type      String?   @usa.VarChar(250)
+  amount    Int?
+  user_id   String?   @usa.Uuid
+  statement String?
+  status    Boolean?
+  date      DateTime? @usa.Timestamp(6)
+  users     users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rewards_user_id")
+}
+
+model user_coupon_log {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @usa.Uuid
+  userid      String    @usa.Uuid
+  coupon_code String
+  timestamp   DateTime? @default(now()) @usa.Timestamp(6)
+  users       users     @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  id                                            String            @id @usa.Uuid
+  first_name                                    String?
+  middle_name                                   String?
+  last_name                                     String?
+  password                                      String?
+  email                                         String            @unique(map: "email_unique")
+  phone_num                                     String?           @usa.VarChar(15)
+  dob                                           DateTime?         @usa.Timestamp(6)
+  gender                                        String?
+  image_url                                     String?
+  google_id                                     String?           @unique(map: "unique_google_id")
+  created_at                                    DateTime?         @default(now()) @usa.Timestamp(6)
+  email_verified                                Boolean?          @default(false)
+  blood_group                                   String?
+  city                                          String?
+  state                                         String?
+  country                                       String?
+  zip_code                                      String?           @usa.VarChar(10)
+  emergency_contact                             String?
+  emergency_contact_name                        String?
+  relationship                                  String?
+  updated_at                                    DateTime?         @default(now()) @usa.Timestamp(6)
+  referral_by                                   String?
+  referral_code                                 String?           @unique(map: "referral_code_unique")
+  referral_count                                Int?              @default(0)
+  mdr_id                                        String?           @unique(map: "unique_mdr_id") @usa.VarChar(250)
+  address                                       String?
+  apple_id                                      String?           @unique(map: "unique_apple_id")
+  login_type                                    String?
+  plan_id                                       String?           @usa.VarChar(250)
+  user_plan_active                              Boolean?          @default(false)
+  payment_date                                  DateTime?         @usa.Timestamp(6)
+  order_id                                      String?
+  expiry_date                                   DateTime?         @usa.Timestamptz(6)
+  allergies_data                                allergies_data[]
+  favshealthhub                                 favshealthhub[]
+  health_hub                                    health_hub?
+  referrals_referrals_referred_by_mdr_idTousers referrals[]       @relation("referrals_referred_by_mdr_idTousers")
+  referrals_referrals_user_idTousers            referrals[]       @relation("referrals_user_idTousers")
+  referrals_referrals_user_mdr_idTousers        referrals[]       @relation("referrals_user_mdr_idTousers")
+  rewards                                       rewards[]
+  user_coupon_log                               user_coupon_log[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model coupons {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @usa.Uuid
+  coupon_code    String          @unique @usa.VarChar(50)
+  type           String?         @usa.VarChar(20)
+  amount         Decimal         @usa.Decimal(10, 2)
+  description    String?
+  is_active      Boolean         @default(true)
+  start_date     DateTime?       @usa.Timestamptz(6)
+  end_date       DateTime?       @usa.Timestamptz(6)
+  usage_limit    Int?
+  used_count     Int             @default(0)
+  mdr_id         String?         @usa.VarChar(50)
+  created_at     DateTime        @default(now()) @usa.Timestamptz(6)
+  updated_at     DateTime        @default(now()) @usa.Timestamptz(6)
+  referral_code  String?
+  visible        Boolean?        @default(false)
+  referral_codes referral_codes? @relation(fields: [referral_code], references: [referral_code], map: "fk_coupons_referral_code")
+
+  @@index([is_active, start_date, end_date], map: "coupons_active_idx")
+  @@index([mdr_id], map: "coupons_mdr_idx")
+}
+
+model referral_codes {
+  id              String    @id(map: "referral_plans_pkey") @default(dbgenerated("gen_random_uuid()")) @usa.Uuid
+  referral_code   String    @unique(map: "referral_plans_referral_code_key")
+  free_trial_days Int?      @default(0)
+  created_at      DateTime? @default(now()) @usa.Timestamp(6)
+  updated_at      DateTime? @default(now()) @usa.Timestamp(6)
+  SmartVitals     Boolean?  @default(false)
+  Medication      Boolean?  @default(false)
+  Vaccines        Boolean?  @default(false)
+  HealthSnapShot  Boolean?  @default(false)
+  Records         Boolean?  @default(false)
+  Prenatal        Boolean?  @default(false)
+  HealthHub       Boolean?  @default(false)
+  Members         Boolean?  @default(false)
+  ABHA            Boolean?  @default(false)
+  COUNT           Int?      @default(0)
+  MAX             Int?      @default(0)
+  code_id         String?
+  coupons         coupons[]
+}
+
+model referral_modules {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @usa.Uuid
+  referral_code String
+  module_name   String
+  created_at    DateTime? @default(now()) @usa.Timestamp(6)
+}
+
+enum gender_enum {
+  male
+  female
+  non_binary
+  other
+}
+
+enum vital_metric {
+  heart_rate
+  blood_glucose
+  bmi
+  weight_kg
+  height_cm
+  systolic_bp
+  diastolic_bp
+  blood_oxygen
+  body_temp_c
+}

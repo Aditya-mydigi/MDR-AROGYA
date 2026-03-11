@@ -69,7 +69,12 @@ export default function Header({
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                         <Clock className="h-4 w-4 text-[#0a3a7a]" />
-                        <span className="text-sm font-bold tabular-nums">{formattedTime}</span>
+                        <span
+                            className="text-sm font-bold tabular-nums"
+                            suppressHydrationWarning
+                        >
+                            {formattedTime}
+                        </span>
                     </div>
                 </div>
             </div>
