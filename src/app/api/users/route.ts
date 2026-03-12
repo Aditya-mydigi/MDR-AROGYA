@@ -222,86 +222,104 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
     const {
-      region,
       first_name,
+      middle_name,
       last_name,
       email,
       phone_num,
+      password,
+      dob,
       gender,
-      country,
       blood_group,
-      plan_id,
-      user_plan_active,
-      payment_date,
-      expiry_date,
+      city,
+      state,
+      country,
+      zip_code,
+      emergency_contact,
+      emergency_contact_name,
     } = body || {};
 
-    if (!email || !region) {
+    if (!first_name || !email || !phone_num || !password) {
       return NextResponse.json(
-        { success: false, error: "Email and region are required" },
+        {
+          success: false,
+          error: "First name, email, phone number and password are required",
+        },
         { status: 400 }
       );
     }
 
-    const normalizedRegion = String(region).toLowerCase();
-    const id = generateUUID();
-
-    if (normalizedRegion === "india") {
-      const normalizedGender =
-        typeof gender === "string" && gender
-          ? (gender as "Male" | "Female" | "Other" | "male" | "female" | "other")
-          : ("Other" as const);
-
-      const created = await prismaIndia.users.create({
-        data: {
-          id,
-          first_name: first_name || null,
-          last_name: last_name || null,
-          email: email.toLowerCase(),
-          phone_num: phone_num || null,
-          gender: normalizedGender,
-          country: country || "India",
-          blood_group: blood_group || null,
-          plan_id: plan_id || null,
-          user_plan_active: Boolean(user_plan_active),
-          payment_date: payment_date ? new Date(payment_date) : null,
-          expiry_date: expiry_date ? new Date(expiry_date) : null,
+    const response = await fetch(
+      "https://dev-mdr-in.mydigirecords.com/v1/auth-mydig/api/army/in/register",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization:
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjZWU5NGJiNS1kZGMwLTQzODAtYTNkYi0wN2ZmNDUwZTBlMjkiLCJzZXNzaW9uSWQiOiI2OWY2MWY3My1jZjhhLTRiY2QtYTQxZS03ZmZkOTkzM2VlMjAiLCJtZHJfaWQiOiJNRFIyNjAzOTc2MjgySSIsImlhdCI6MTc3MzE0MTgyNiwiZXhwIjoxNzczMTQ1NDI2fQ.zUPd8HZ0aaYe2Gje3vpMR5oSn2FmzD5IJDeV2JrnXP0",
         },
-      });
-
-      return NextResponse.json({ success: true, user: created });
-    }
-
-    if (normalizedRegion === "usa") {
-      const created = await prismaUSA.users.create({
-        data: {
-          id,
-          first_name: first_name || null,
-          last_name: last_name || null,
-          email: email.toLowerCase(),
-          phone_num: phone_num || null,
-          gender: gender || null,
-          country: country || "USA",
-          blood_group: blood_group || null,
-          plan_id: plan_id || null,
-          user_plan_active: Boolean(user_plan_active),
-          payment_date: payment_date ? new Date(payment_date) : null,
-          expiry_date: expiry_date ? new Date(expiry_date) : null,
-        },
-      });
-
-      return NextResponse.json({ success: true, user: created });
-    }
-
-    return NextResponse.json(
-      { success: false, error: "Invalid region" },
-      { status: 400 }
+        body: JSON.stringify({
+          first_name,
+          middle_name: middle_name || "",
+          last_name,
+          password,
+          email,
+          phone_num,
+          dob,
+          gender,
+          image_url: "",
+          google_id: null,
+          blood_group,
+          city,
+          state,
+          country,
+          zip_code,
+          emergency_contact,
+          emergency_contact_name,
+          u_type: "army",
+        }),
+      }
     );
+
+    const data = await response.json();
+
+    console.log("REGISTER API STATUS:", response.status);
+console.log("REGISTER API RESPONSE:", data);
+
+    if (!response.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: data?.message || JSON.stringify(data),
+        },
+        { status: 500 }
+      );
+    }
+
+    //After registration set default daily_sv = 5
+    try {
+      await prismaIndia.users.update({
+        where: { email: email.toLowerCase() },
+        data: {
+          daily_sv: 5,
+        },
+      });
+    } catch (error) {
+      console.warn("Could not update daily_sv:", error);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "User registered successfully",
+      data,
+    });
   } catch (error) {
-    console.error("❌ Error creating user:", error);
+    console.error("❌ Error registering user:", error);
+
     return NextResponse.json(
-      { success: false, error: "Failed to create user" },
+      { success: false, error: "Failed to register user" },
       { status: 500 }
     );
   }

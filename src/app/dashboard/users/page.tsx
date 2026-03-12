@@ -66,7 +66,9 @@ export default function UsersPage() {
   const [limit] = useState(20);
 
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<"All" | "Active" | "Inactive" | "Expired">("All");
+  const [status, setStatus] = useState<
+    "All" | "Active" | "Inactive" | "Expired"
+  >("All");
   const [region, setRegion] = useState<"total" | "india" | "usa">("total");
   const [bloodGroup, setBloodGroup] = useState("");
 
@@ -80,24 +82,29 @@ export default function UsersPage() {
   const [newUserSubmitting, setNewUserSubmitting] = useState(false);
   const [newUserForm, setNewUserForm] = useState({
     first_name: "",
+    middle_name: "",
     last_name: "",
     email: "",
     phone_num: "",
+    password: "",
+    dob: "",
     gender: "",
-    region: "india",
-    country: "",
     blood_group: "",
-    plan_id: "",
-    user_plan_active: true,
-    payment_date: "",
-    expiry_date: "",
+    city: "",
+    state: "",
+    country: "INDIA",
+    zip_code: "",
+    emergency_contact: "",
+    emergency_contact_name: "",
   });
 
   const [scansLoading, setScansLoading] = useState(false);
   const [scansSubmitting, setScansSubmitting] = useState(false);
   const [dailySv, setDailySv] = useState<number | "">("");
   const [monthlyOcr, setMonthlyOcr] = useState<number | "">("");
-  const [actionLoadingUserId, setActionLoadingUserId] = useState<string | null>(null);
+  const [actionLoadingUserId, setActionLoadingUserId] = useState<string | null>(
+    null,
+  );
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   useEffect(() => {
@@ -162,24 +169,33 @@ export default function UsersPage() {
   const handleOpenAddUser = () => {
     setNewUserForm({
       first_name: "",
+      middle_name: "",
       last_name: "",
       email: "",
       phone_num: "",
+      password: "",
+      dob: "",
       gender: "",
-      region: "india",
-      country: "",
       blood_group: "",
-      plan_id: "",
-      user_plan_active: true,
-      payment_date: "",
-      expiry_date: "",
+      city: "",
+      state: "",
+      country: "INDIA",
+      zip_code: "",
+      emergency_contact: "",
+      emergency_contact_name: "",
     });
+
     setIsAddUserOpen(true);
   };
 
   const handleCreateUser = async () => {
-    if (!newUserForm.email || !newUserForm.region) {
-      setError("Email and region are required to create a user.");
+    if (
+      !newUserForm.first_name ||
+      !newUserForm.email ||
+      !newUserForm.phone_num ||
+      !newUserForm.password
+    ) {
+      setError("First name, email, phone and password are required.");
       return;
     }
 
@@ -189,11 +205,10 @@ export default function UsersPage() {
 
       const res = await fetch("/api/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...newUserForm,
-          region: newUserForm.region,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newUserForm),
       });
 
       const data = await res.json();
@@ -203,6 +218,7 @@ export default function UsersPage() {
       }
 
       setIsAddUserOpen(false);
+
       await fetchUsers(1);
     } catch (err: any) {
       console.error(err);
@@ -224,7 +240,9 @@ export default function UsersPage() {
 
     try {
       setScansLoading(true);
-      const res = await fetch(`/api/users/scans?id=${encodeURIComponent(user.id)}`);
+      const res = await fetch(
+        `/api/users/scans?id=${encodeURIComponent(user.id)}`,
+      );
       const data = await res.json();
 
       if (!res.ok || !data.success) {
@@ -235,7 +253,9 @@ export default function UsersPage() {
       setMonthlyOcr(data.monthly_ocr ?? 0);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Something went wrong while loading scan limits.");
+      setError(
+        err.message || "Something went wrong while loading scan limits.",
+      );
       setDailySv("");
       setMonthlyOcr("");
     } finally {
@@ -274,7 +294,9 @@ export default function UsersPage() {
       setIsScansDialogOpen(false);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Something went wrong while updating scan limits.");
+      setError(
+        err.message || "Something went wrong while updating scan limits.",
+      );
     } finally {
       setScansSubmitting(false);
     }
@@ -300,16 +322,17 @@ export default function UsersPage() {
     return parts.length ? parts.join(" ") : "-";
   };
 
-  const handleToggleSubscription = async (user: UserRow, forceActive?: boolean) => {
+  const handleToggleSubscription = async (
+    user: UserRow,
+    forceActive?: boolean,
+  ) => {
     if (!user.id || !user.region) return;
     try {
       setActionLoadingUserId(user.id);
       setError(null);
 
       const targetActive =
-        typeof forceActive === "boolean"
-          ? forceActive
-          : !user.user_plan_active;
+        typeof forceActive === "boolean" ? forceActive : !user.user_plan_active;
       const res = await fetch(`/api/users/${encodeURIComponent(user.id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -321,13 +344,17 @@ export default function UsersPage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || data.error || "Failed to update subscription");
+        throw new Error(
+          data.message || data.error || "Failed to update subscription",
+        );
       }
 
       await fetchUsers(page);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Something went wrong while updating subscription.");
+      setError(
+        err.message || "Something went wrong while updating subscription.",
+      );
     } finally {
       setActionLoadingUserId(null);
     }
@@ -353,7 +380,9 @@ export default function UsersPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || data.error || "Failed to reset password");
+        throw new Error(
+          data.message || data.error || "Failed to reset password",
+        );
       }
     } catch (err: any) {
       console.error(err);
@@ -395,7 +424,7 @@ export default function UsersPage() {
     <div
       className={clsx(
         "min-h-screen bg-white flex",
-        sidebarOpen && "overflow-hidden"
+        sidebarOpen && "overflow-hidden",
       )}
     >
       <Sidebar
@@ -420,7 +449,8 @@ export default function UsersPage() {
                   MDR Users
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Manage MDR users across India and USA, add new users, and customize scan limits.
+                  Manage MDR users across India and USA, add new users, and
+                  customize scan limits.
                 </p>
               </div>
 
@@ -742,20 +772,21 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>Add new user</DialogTitle>
             <DialogDescription>
-              Create a new MDR user in India or USA. Only basic details are
-              required; other fields are optional.
+              Create a new MDR Army user. Basic personal and contact information
+              is required.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 py-2">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="space-y-4 py-2">
+            {/* Name fields */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  First name
+                  First name *
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm text-gray-800 focus:border-[#0a3a7a] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0a3a7a]/10"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
                   value={newUserForm.first_name}
                   onChange={(e) =>
                     setNewUserForm((prev) => ({
@@ -765,13 +796,31 @@ export default function UsersPage() {
                   }
                 />
               </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-700">
+                  Middle name
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
+                  value={newUserForm.middle_name}
+                  onChange={(e) =>
+                    setNewUserForm((prev) => ({
+                      ...prev,
+                      middle_name: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
                   Last name
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm text-gray-800 focus:border-[#0a3a7a] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0a3a7a]/10"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
                   value={newUserForm.last_name}
                   onChange={(e) =>
                     setNewUserForm((prev) => ({
@@ -783,13 +832,14 @@ export default function UsersPage() {
               </div>
             </div>
 
+            {/* Email */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-gray-700">
-                Email <span className="text-red-500">*</span>
+                Email *
               </label>
               <input
                 type="email"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm text-gray-800 focus:border-[#0a3a7a] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0a3a7a]/10"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
                 value={newUserForm.email}
                 onChange={(e) =>
                   setNewUserForm((prev) => ({
@@ -800,14 +850,33 @@ export default function UsersPage() {
               />
             </div>
 
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-gray-700">
+                Password *
+              </label>
+              <input
+                type="password"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
+                value={newUserForm.password}
+                onChange={(e) =>
+                  setNewUserForm((prev) => ({
+                    ...prev,
+                    password: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            {/* Phone + DOB */}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  Phone
+                  Phone number *
                 </label>
                 <input
                   type="tel"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm text-gray-800 focus:border-[#0a3a7a] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0a3a7a]/10"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
                   value={newUserForm.phone_num}
                   onChange={(e) =>
                     setNewUserForm((prev) => ({
@@ -817,33 +886,33 @@ export default function UsersPage() {
                   }
                 />
               </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  Region <span className="text-red-500">*</span>
+                  Date of birth
                 </label>
-                <select
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm text-gray-800 focus:border-[#0a3a7a] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0a3a7a]/10"
-                  value={newUserForm.region}
+                <input
+                  type="date"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
+                  value={newUserForm.dob}
                   onChange={(e) =>
                     setNewUserForm((prev) => ({
                       ...prev,
-                      region: e.target.value,
+                      dob: e.target.value,
                     }))
                   }
-                >
-                  <option value="india">India</option>
-                  <option value="usa">USA</option>
-                </select>
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {/* Gender + Blood Group */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  Gender (India requires)
+                  Gender
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm text-gray-800 focus:border-[#0a3a7a] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0a3a7a]/10"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
                   value={newUserForm.gender}
                   onChange={(e) =>
                     setNewUserForm((prev) => ({
@@ -853,9 +922,9 @@ export default function UsersPage() {
                   }
                 >
                   <option value="">Select gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
 
@@ -864,7 +933,7 @@ export default function UsersPage() {
                   Blood group
                 </label>
                 <select
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm text-gray-800 focus:border-[#0a3a7a] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0a3a7a]/10"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
                   value={newUserForm.blood_group}
                   onChange={(e) =>
                     setNewUserForm((prev) => ({
@@ -884,77 +953,96 @@ export default function UsersPage() {
                   <option value="O-">O-</option>
                 </select>
               </div>
+            </div>
 
+            {/* Address */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  Plan ID
+                  City
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm text-gray-800 focus:border-[#0a3a7a] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0a3a7a]/10"
-                  value={newUserForm.plan_id}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
+                  value={newUserForm.city}
                   onChange={(e) =>
                     setNewUserForm((prev) => ({
                       ...prev,
-                      plan_id: e.target.value,
+                      city: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-700">
+                  State
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
+                  value={newUserForm.state}
+                  onChange={(e) =>
+                    setNewUserForm((prev) => ({
+                      ...prev,
+                      state: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-700">
+                  Zip code
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
+                  value={newUserForm.zip_code}
+                  onChange={(e) =>
+                    setNewUserForm((prev) => ({
+                      ...prev,
+                      zip_code: e.target.value,
                     }))
                   }
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {/* Emergency Contact */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  Payment date
+                  Emergency contact
                 </label>
                 <input
-                  type="date"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm text-gray-800 focus:border-[#0a3a7a] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0a3a7a]/10"
-                  value={newUserForm.payment_date}
+                  type="text"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
+                  value={newUserForm.emergency_contact}
                   onChange={(e) =>
                     setNewUserForm((prev) => ({
                       ...prev,
-                      payment_date: e.target.value,
+                      emergency_contact: e.target.value,
                     }))
                   }
                 />
               </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  Expiry date
+                  Emergency contact name
                 </label>
                 <input
-                  type="date"
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2 text-sm text-gray-800 focus:border-[#0a3a7a] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0a3a7a]/10"
-                  value={newUserForm.expiry_date}
+                  type="text"
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
+                  value={newUserForm.emergency_contact_name}
                   onChange={(e) =>
                     setNewUserForm((prev) => ({
                       ...prev,
-                      expiry_date: e.target.value,
+                      emergency_contact_name: e.target.value,
                     }))
                   }
                 />
-              </div>
-              <div className="flex items-end space-x-2">
-                <input
-                  id="user-plan-active"
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-[#0a3a7a] focus:ring-[#0a3a7a]"
-                  checked={newUserForm.user_plan_active}
-                  onChange={(e) =>
-                    setNewUserForm((prev) => ({
-                      ...prev,
-                      user_plan_active: e.target.checked,
-                    }))
-                  }
-                />
-                <label
-                  htmlFor="user-plan-active"
-                  className="text-xs font-medium text-gray-700"
-                >
-                  Plan active
-                </label>
               </div>
             </div>
           </div>
@@ -968,6 +1056,7 @@ export default function UsersPage() {
             >
               Cancel
             </Button>
+
             <Button
               size="sm"
               className="bg-[#0a3a7a] hover:bg-[#0b4794] text-white"
@@ -1029,7 +1118,7 @@ export default function UsersPage() {
                         setDailySv(
                           e.target.value === ""
                             ? ""
-                            : Math.max(0, Number(e.target.value) || 0)
+                            : Math.max(0, Number(e.target.value) || 0),
                         )
                       }
                     />
@@ -1047,7 +1136,7 @@ export default function UsersPage() {
                         setMonthlyOcr(
                           e.target.value === ""
                             ? ""
-                            : Math.max(0, Number(e.target.value) || 0)
+                            : Math.max(0, Number(e.target.value) || 0),
                         )
                       }
                     />
