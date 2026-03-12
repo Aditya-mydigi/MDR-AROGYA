@@ -241,15 +241,23 @@ export async function POST(request: Request) {
       emergency_contact_name,
     } = body || {};
 
-    if (!first_name || !email || !phone_num || !password) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "First name, email, phone number and password are required",
-        },
-        { status: 400 }
-      );
-    }
+    const validationErrors: string[] = [];
+
+if (!first_name) validationErrors.push("First name is required");
+if (!last_name) validationErrors.push("Last name is required");
+if (!email) validationErrors.push("Email is required");
+if (!phone_num) validationErrors.push("Phone number is required");
+if (!password) validationErrors.push("Password is required");
+
+if (validationErrors.length > 0) {
+  return NextResponse.json(
+    {
+      success: false,
+      errors: validationErrors,
+    },
+    { status: 400 }
+  );
+}
 
     const response = await fetch(
       "https://dev-mdr-in.mydigirecords.com/v1/auth-mydig/api/army/in/register",
@@ -289,14 +297,24 @@ export async function POST(request: Request) {
 console.log("REGISTER API RESPONSE:", data);
 
     if (!response.ok) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: data?.message || JSON.stringify(data),
-        },
-        { status: 500 }
-      );
-    }
+  let errors: string[] = [];
+
+  if (data?.errors && typeof data.errors === "object") {
+    errors = Object.values(data.errors);
+  } else if (data?.message) {
+    errors = [data.message];
+  } else {
+    errors = ["Failed to register user"];
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      errors,
+    },
+    { status: 400 }
+  );
+}
 
     //After registration set default daily_sv = 5
     try {

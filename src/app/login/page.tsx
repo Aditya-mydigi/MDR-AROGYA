@@ -33,7 +33,7 @@ export default function LoginPage() {
     setLoading(true);
 
     if (email === "aditya.amparmar@gmail.com" && password === "Aditya@123") {
-      router.push("/dashboard");
+      router.push("/dashboard/users");
     } else {
       setError("Invalid email or password");
     }

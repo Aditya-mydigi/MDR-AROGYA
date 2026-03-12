@@ -3,13 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
-import {
-  Activity,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  Users,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Users } from "lucide-react";
 
 interface SidebarProps {
   sidebarOpen?: boolean;
@@ -28,15 +22,11 @@ export default function Sidebar({
   const router = useRouter();
 
   const iconMap: Record<string, React.ReactNode> = {
-    "SmartVitals": <Activity className="h-5 w-5" />,
-    "Users": <Users className="h-5 w-5" />,
+    Users: <Users className="h-5 w-5" />,
     "Log Out": <LogOut className="h-5 w-5" />,
   };
 
-  const navItems = [
-    { label: "SmartVitals", href: "/dashboard" },
-    { label: "Users", href: "/dashboard/users" },
-  ];
+  const navItems = [{ label: "Users", href: "/dashboard/users" }];
 
   const handleLogout = () => {
     router.push("/login");
@@ -56,7 +46,7 @@ export default function Sidebar({
         className={clsx(
           "fixed lg:static z-50 top-0 left-0 bottom-0 bg-gradient-to-b from-[#00f5ef] via-[#02b8f2] to-[#0a3a7a] text-white flex flex-col transition-all duration-300 ease-in-out shadow-lg",
           collapsed ? "w-20" : "w-64",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
         {/* Header Section with Logo */}
@@ -64,7 +54,7 @@ export default function Sidebar({
           <div
             className={clsx(
               "flex justify-center items-center pt-6 pb-4 transition-all duration-300",
-              collapsed ? "px-2" : "px-6"
+              collapsed ? "px-2" : "px-6",
             )}
           >
             {collapsed ? (
@@ -109,7 +99,7 @@ export default function Sidebar({
         <nav
           className={clsx(
             "flex-1 flex flex-col transition-all duration-300 overflow-y-auto overflow-x-hidden",
-            collapsed ? "px-2 pt-2" : "px-4 pt-2"
+            collapsed ? "px-2 pt-2" : "px-4 pt-2",
           )}
         >
           <div className="space-y-2">
@@ -126,14 +116,14 @@ export default function Sidebar({
                     collapsed ? "justify-center px-3" : "px-4",
                     isActive
                       ? "bg-white text-[#0a3a7a] shadow-md"
-                      : "text-white/90 hover:bg-white/10 hover:text-white"
+                      : "text-white/90 hover:bg-white/10 hover:text-white",
                   )}
                 >
                   {/* Active Indicator */}
                   {isActive && !collapsed && (
                     <div
                       className={clsx(
-                        "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full bg-white"
+                        "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full bg-white",
                       )}
                     />
                   )}
@@ -141,9 +131,7 @@ export default function Sidebar({
                   <span
                     className={clsx(
                       "flex-shrink-0 transition-all duration-200",
-                      isActive
-                        ? "text-[#0a3a7a]"
-                        : "text-white"
+                      isActive ? "text-[#0a3a7a]" : "text-white",
                     )}
                   >
                     {iconMap[item.label]}
@@ -155,7 +143,7 @@ export default function Sidebar({
                         "transition-all duration-200 whitespace-nowrap",
                         isActive
                           ? "font-semibold text-[#0a3a7a]"
-                          : "font-medium"
+                          : "font-medium",
                       )}
                     >
                       {item.label}

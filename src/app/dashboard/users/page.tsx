@@ -10,8 +10,7 @@ import {
   ChevronRight,
   RotateCcw,
   Eye,
-  CreditCard,
-  Trash2,
+  EyeOff,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/header";
@@ -76,10 +75,12 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isScansDialogOpen, setIsScansDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
 
   const [newUserSubmitting, setNewUserSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [newUserForm, setNewUserForm] = useState({
     first_name: "",
     middle_name: "",
@@ -189,19 +190,74 @@ export default function UsersPage() {
   };
 
   const handleCreateUser = async () => {
+    const errors: string[] = [];
+
+    // Required fields
+    if (!newUserForm.first_name) errors.push("First name is required");
+    if (!newUserForm.last_name) errors.push("Last name is required");
+    if (!newUserForm.email) errors.push("Email is required");
+    if (!newUserForm.phone_num) errors.push("Phone number is required");
+    if (!newUserForm.password) errors.push("Password is required");
+    if (!newUserForm.dob) errors.push("Date of birth is required");
+    if (!newUserForm.gender) errors.push("Gender is required");
+
+    // Email validation
     if (
-      !newUserForm.first_name ||
-      !newUserForm.email ||
-      !newUserForm.phone_num ||
-      !newUserForm.password
+      newUserForm.email &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUserForm.email)
     ) {
-      setError("First name, email, phone and password are required.");
+      errors.push("Invalid email format");
+    }
+
+    // Phone validation
+    if (
+      newUserForm.phone_num &&
+      !/^[0-9]{10,15}$/.test(newUserForm.phone_num)
+    ) {
+      errors.push("Phone number must be 10–15 digits");
+    }
+
+    // Password validation
+    if (newUserForm.password) {
+      if (newUserForm.password.length < 8) {
+        errors.push("Password must be at least 8 characters");
+      }
+
+      if (!/[A-Z]/.test(newUserForm.password)) {
+        errors.push("Password must contain at least one uppercase letter");
+      }
+
+      if (!/[0-9]/.test(newUserForm.password)) {
+        errors.push("Password must contain at least one number");
+      }
+    }
+
+    // DOB validation
+    if (newUserForm.dob) {
+      const dobDate = new Date(newUserForm.dob);
+      const today = new Date();
+
+      if (dobDate >= today) {
+        errors.push("Date of birth must be in the past");
+      }
+    }
+
+    // Gender validation
+    if (
+      newUserForm.gender &&
+      !["male", "female", "other"].includes(newUserForm.gender)
+    ) {
+      errors.push("Invalid gender selected");
+    }
+
+    if (errors.length > 0) {
+      setFormErrors(errors);
       return;
     }
 
     try {
       setNewUserSubmitting(true);
-      setError(null);
+      setFormErrors([]);
 
       const res = await fetch("/api/users", {
         method: "POST",
@@ -214,15 +270,20 @@ export default function UsersPage() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to create user");
+        if (Array.isArray(data.errors)) {
+          setFormErrors(data.errors);
+        } else {
+          setFormErrors([
+            data.error || "Something went wrong while creating the user.",
+          ]);
+        }
+        return;
       }
 
       setIsAddUserOpen(false);
-
       await fetchUsers(1);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Something went wrong while creating user.");
+    } catch (err) {
+      setFormErrors(["Network error. Please try again."]);
     } finally {
       setNewUserSubmitting(false);
     }
@@ -302,11 +363,6 @@ export default function UsersPage() {
     }
   };
 
-  const openDetailsDialog = (user: UserRow) => {
-    setSelectedUser(user);
-    setIsDetailsOpen(true);
-  };
-
   const formatDate = (value?: string | null) => {
     if (!value) return "-";
     try {
@@ -320,76 +376,6 @@ export default function UsersPage() {
   const fullName = (user: UserRow) => {
     const parts = [user.first_name, user.last_name].filter(Boolean);
     return parts.length ? parts.join(" ") : "-";
-  };
-
-  const handleToggleSubscription = async (
-    user: UserRow,
-    forceActive?: boolean,
-  ) => {
-    if (!user.id || !user.region) return;
-    try {
-      setActionLoadingUserId(user.id);
-      setError(null);
-
-      const targetActive =
-        typeof forceActive === "boolean" ? forceActive : !user.user_plan_active;
-      const res = await fetch(`/api/users/${encodeURIComponent(user.id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          region: user.region.toLowerCase(),
-          active: targetActive,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(
-          data.message || data.error || "Failed to update subscription",
-        );
-      }
-
-      await fetchUsers(page);
-    } catch (err: any) {
-      console.error(err);
-      setError(
-        err.message || "Something went wrong while updating subscription.",
-      );
-    } finally {
-      setActionLoadingUserId(null);
-    }
-  };
-
-  const handleResetPassword = async (user: UserRow) => {
-    if (!user.email || !user.region) {
-      setError("Email and region are required to reset password.");
-      return;
-    }
-    try {
-      setActionLoadingUserId(user.id);
-      setError(null);
-
-      const res = await fetch("/api/users/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: user.email,
-          region: user.region.toLowerCase(),
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(
-          data.message || data.error || "Failed to reset password",
-        );
-      }
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Something went wrong while resetting password.");
-    } finally {
-      setActionLoadingUserId(null);
-    }
   };
 
   const handleDeleteUser = async (user: UserRow) => {
@@ -574,11 +560,9 @@ export default function UsersPage() {
                       <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                         Email / Phone
                       </th>
+
                       <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                        Plan
-                      </th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                        SV Left
+                        Avaialble SV Credits
                       </th>
                       <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                         Status
@@ -631,9 +615,7 @@ export default function UsersPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-xs text-gray-700">
-                            {user.plan_id || "-"}
-                          </td>
+
                           <td className="px-4 py-3 text-xs text-gray-700">
                             {user.region === "India"
                               ? typeof user.daily_sv === "number"
@@ -666,46 +648,12 @@ export default function UsersPage() {
                               >
                                 <DropdownMenuItem
                                   className="flex items-center gap-2"
-                                  onClick={() => void handleResetPassword(user)}
-                                  disabled={actionLoadingUserId === user.id}
-                                >
-                                  <RotateCcw className="h-4 w-4" />
-                                  <span>Reset Password</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="flex items-center gap-2"
-                                  onClick={() => openDetailsDialog(user)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                  <span>View Details</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="flex items-center gap-2"
-                                  onClick={() =>
-                                    void handleToggleSubscription(user, true)
-                                  }
-                                  disabled={actionLoadingUserId === user.id}
-                                >
-                                  <CreditCard className="h-4 w-4" />
-                                  <span>Add Subscription</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="flex items-center gap-2"
                                   onClick={() => void openScansDialog(user)}
                                 >
                                   <RotateCcw className="h-4 w-4" />
                                   <span>Customize scans limit</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="flex items-center gap-2 text-red-600 focus:text-red-600"
-                                  variant="destructive"
-                                  onClick={() => void handleDeleteUser(user)}
-                                  disabled={actionLoadingUserId === user.id}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  <span>Delete User</span>
-                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </td>
@@ -767,7 +715,13 @@ export default function UsersPage() {
         </main>
       </div>
 
-      <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+      <Dialog
+        open={isAddUserOpen}
+        onOpenChange={(open) => {
+          setIsAddUserOpen(open);
+          if (!open) setFormErrors([]);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add new user</DialogTitle>
@@ -779,10 +733,20 @@ export default function UsersPage() {
 
           <div className="space-y-4 py-2">
             {/* Name fields */}
+            {formErrors.length > 0 && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <p className="font-semibold mb-1">Please fix the following:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {formErrors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  First name *
+                  First name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -816,7 +780,7 @@ export default function UsersPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  Last name
+                  Last name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -835,7 +799,7 @@ export default function UsersPage() {
             {/* Email */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-gray-700">
-                Email *
+                Email <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -853,26 +817,40 @@ export default function UsersPage() {
             {/* Password */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-gray-700">
-                Password *
+                Password <span className="text-red-500">*</span>
               </label>
-              <input
-                type="password"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
-                value={newUserForm.password}
-                onChange={(e) =>
-                  setNewUserForm((prev) => ({
-                    ...prev,
-                    password: e.target.value,
-                  }))
-                }
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 pr-10 text-sm"
+                  value={newUserForm.password}
+                  onChange={(e) =>
+                    setNewUserForm((prev) => ({
+                      ...prev,
+                      password: e.target.value,
+                    }))
+                  }
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">
+                Password must contain: • 8+ characters • 1 uppercase letter • 1
+                number
+              </p>
             </div>
 
             {/* Phone + DOB */}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  Phone number *
+                  Phone number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
@@ -889,7 +867,7 @@ export default function UsersPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  Date of birth
+                  Date of birth <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -909,7 +887,7 @@ export default function UsersPage() {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-gray-700">
-                  Gender
+                  Gender <span className="text-red-500">*</span>
                 </label>
                 <select
                   className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
@@ -1051,7 +1029,10 @@ export default function UsersPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsAddUserOpen(false)}
+              onClick={() => {
+                setIsAddUserOpen(false);
+                setFormErrors([]);
+              }}
               disabled={newUserSubmitting}
             >
               Cancel
@@ -1075,7 +1056,7 @@ export default function UsersPage() {
             <DialogTitle>Customize scans limit</DialogTitle>
             <DialogDescription>
               {selectedUser?.region === "India"
-                ? "Update daily SmartVitals and monthly OCR scan limits for this user."
+                ? "Update daily and monthly OCR scan limits for this user."
                 : "Scan limits are only configurable for India users."}
             </DialogDescription>
           </DialogHeader>
@@ -1107,7 +1088,7 @@ export default function UsersPage() {
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-gray-700">
-                      Daily SmartVitals scans
+                      Daily scans
                     </label>
                     <input
                       type="number"
