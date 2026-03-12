@@ -436,7 +436,7 @@ export default function UsersPage() {
                 </h2>
                 <p className="text-sm text-gray-500">
                   Manage MDR users across India and USA, add new users, and
-                  customize scan limits.
+                  manage smart vitals.
                 </p>
               </div>
 
@@ -651,7 +651,7 @@ export default function UsersPage() {
                                   onClick={() => void openScansDialog(user)}
                                 >
                                   <RotateCcw className="h-4 w-4" />
-                                  <span>Customize scans limit</span>
+                                  <span>Add Smart Vitals</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                               </DropdownMenuContent>
@@ -1053,7 +1053,7 @@ export default function UsersPage() {
       <Dialog open={isScansDialogOpen} onOpenChange={setIsScansDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Customize scans limit</DialogTitle>
+            <DialogTitle>Add Smart Vitals</DialogTitle>
             <DialogDescription>
               {selectedUser?.region === "India"
                 ? "Update daily and monthly OCR scan limits for this user."
