@@ -119,7 +119,7 @@ export default function UsersPage() {
   }, [sidebarCollapsed]);
 
   useEffect(() => {
-    // Initial fetch
+    // Initial fetches
     void fetchUsers(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
