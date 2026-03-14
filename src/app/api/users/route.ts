@@ -296,14 +296,19 @@ if (validationErrors.length > 0) {
     console.log("REGISTER API STATUS:", response.status);
 console.log("REGISTER API RESPONSE:", data);
 
-    if (!response.ok) {
+if (!response.ok) {
   let errors: string[] = [];
 
   if (data?.errors && typeof data.errors === "object") {
-    errors = Object.values(data.errors);
-  } else if (data?.message) {
+    errors = Object.values(data.errors).flat().map(String);
+  } 
+  else if (data?.error) {
+    errors = [data.error];
+  } 
+  else if (data?.message) {
     errors = [data.message];
-  } else {
+  } 
+  else {
     errors = ["Failed to register user"];
   }
 
