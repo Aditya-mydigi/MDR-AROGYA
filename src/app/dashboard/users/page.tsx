@@ -125,9 +125,9 @@ export default function UsersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchUsers = async (targetPage?: number) => {
+  const fetchUsers = async (targetPage?: number, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
 
       const pageToLoad = targetPage ?? page;
@@ -154,7 +154,7 @@ export default function UsersPage() {
       console.error(err);
       setError(err.message || "Something went wrong while loading users.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -291,6 +291,21 @@ export default function UsersPage() {
 
   const openScansDialog = async (user: UserRow) => {
     setSelectedUser(user);
+    // Show something immediately while we fetch the freshest limits
+    setDailySv(
+      user.region === "India"
+        ? typeof user.daily_sv === "number"
+          ? user.daily_sv
+          : 0
+        : "",
+    );
+    setMonthlyOcr(
+      user.region === "India"
+        ? typeof user.monthly_ocr === "number"
+          ? user.monthly_ocr
+          : 0
+        : "",
+    );
     setIsScansDialogOpen(true);
 
     if (user.region !== "India") {
@@ -353,6 +368,8 @@ export default function UsersPage() {
       }
 
       setIsScansDialogOpen(false);
+      // Refresh list in background so limits reflect instantly
+      void fetchUsers(page, true);
     } catch (err: any) {
       console.error(err);
       setError(
